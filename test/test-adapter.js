@@ -1,48 +1,24 @@
-/*global RSVP*/
+var assert = require('assert');
+var Promise = require('./es6-promise');
 
-var resolve, reject;
+assert(typeof Promise.polyfill === 'function')
+assert(typeof Promise.Promise === 'function')
+assert(Promise.Promise === Promise)
 
-function bind(func, thisVal) {
-  if (func.bind) {
-    return func.bind(thisVal);
-  }
-  return function() {
-    return func.apply(thisVal, arguments);
-  };
+function defer() {
+  var deferred = {};
+
+  deferred.promise = new Promise(function(resolve, reject) {
+    deferred.resolve = resolve;
+    deferred.reject = reject;
+  });
+
+  return deferred;
 }
 
-if (typeof Promise !== 'undefined') {
-  // Test the browser build
-  resolve = bind(Promise.resolve, Promise);
-  reject = bind(Promise.reject, Promise);
-} else {
-  // Test the Node build
-  Promise = require('../dist/commonjs/main').Promise;
-  assert = require('./vendor/assert');
-  resolve = bind(Promise.resolve, Promise);
-  reject = bind(Promise.reject, Promise);
-}
-
-if (typeof window === 'undefined' && typeof global !== 'undefined') {
-  window = global;
-}
-
-module.exports = global.adapter = {
-  resolved: resolve,
-  rejected: reject,
-  deferred: function defer() {
-    var deferred = {
-      // pre-allocate shape
-      resolve: undefined,
-      reject:  undefined,
-      promise: undefined
-    };
-
-    deferred.promise = new Promise(function(resolve, reject) {
-      deferred.resolve = resolve;
-      deferred.reject = reject;
-    });
-
-    return deferred;
-  }
+new Function('return this;')().adapter = {
+  resolved: function(a) { return Promise.resolve(a); },
+  rejected: function(a) { return Promise.reject(a);  },
+  deferred: defer,
+  Promise: Promise
 };
